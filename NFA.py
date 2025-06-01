@@ -185,12 +185,15 @@ class NFA:
     def concatenation(nfa1, nfa2):
         offset = max(nfa1.states) + 1
         offset = 0
-        nfa2_offset = nfa2.get_with_offset(offset)
+
+        # nfa2_offset = nfa2.get_with_offset(offset)
         nfa2_offset = nfa2
+
         new_states = nfa1.states | nfa2_offset.states
         new_alphabet = nfa1.alphabet | nfa2_offset.alphabet
         new_accept_states = set(nfa2_offset.accept_states)
         new_transition_table = deepcopy(nfa1.transition_table)
+
         for k, v in nfa2_offset.transition_table.items():
             if k in new_transition_table:
                 new_transition_table[k].update(v)

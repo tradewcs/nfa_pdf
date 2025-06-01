@@ -9,10 +9,8 @@ nfa1.add_transition(3, 'c', (3,))
 
 nfa2 = NFA((11, 12), ('a', 'b', 'c'), 11, (12,))
 
-nfa2.add_transition(11, 'a', (11,))
-nfa2.add_transition(11, 'b', (12,))
+nfa2.add_transition(11, 'a', (12,))
 nfa2.add_transition(12, 'c', (12,))
-
 
 
 
