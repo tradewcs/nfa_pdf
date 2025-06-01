@@ -3,7 +3,6 @@ import graphviz
 import random
 from copy import deepcopy
 
-
 class NFA:
     def __init__(self, states, alphabet, start_state, accept_states):
         self.states = set(states)
@@ -11,16 +10,27 @@ class NFA:
         self.transition_table = {}  # {(state, symbol): set(next_states)}
         self.start_state = start_state
         self.accept_states = set(accept_states)
+        self.state_symbol = 'S'
 
-    def add_transition(self, state, symbol, next_states):
-        if state == self.start_state:
-            raise Exception("transtion is impossible")
-        
-        if state in self.states and (symbol in self.alphabet or symbol == '\0'):
-            key = (state, symbol)
-            if key not in self.transition_table:
-                self.transition_table[key] = set()
-            self.transition_table[key].update(next_states)
+    def add_transition(self, from_state, symbol, to_states):
+        if symbol not in self.alphabet:
+            raise Exception(f"Symbol {symbol} does not belong to the automata alphabet.")
+
+        if from_state not in self.states:
+            raise Exception(f"State {self.state_symbol}{from_state} does not belong to the automata.")
+
+        for s in to_states:
+            if s not in self.states:
+                raise Exception(f"State {self.state_symbol}{s} does not belong to the automata.")
+
+            if s == self.start_state:
+                raise Exception(f"Transition to initial state is impossible ({self.state_symbol}{from_state} -> {self.state_symbol}{s}).")
+
+
+        key = (from_state, symbol)
+        if key not in self.transition_table:
+            self.transition_table[key] = set()
+        self.transition_table[key].update(to_states)
 
     def new_state(self):
         max_state = max(self.states)
@@ -36,13 +46,14 @@ class NFA:
         if index == len(input_str):
             if current_state in self.accept_states:
                 return True
-            
+
             return False
-        
+
         current_symbol = input_str[index]
         for next_state in self.transition_table.get((current_state, current_symbol), []):
             if self._run_helper(next_state, input_str, index + 1):
                 return True
+
         return False
 
     def to_json(self):
@@ -69,12 +80,14 @@ class NFA:
             data["start_state"],
             set(data["accept_states"])
         )
+
         for trans in data["transition_table"]:
             nfa.add_transition(
                 trans["from_state"],
                 trans["symbol"],
                 set(trans["to_states"])
             )
+
         return nfa
 
     def write_to_file(self, filename):
@@ -84,7 +97,9 @@ class NFA:
     def read_from_file(self, filename):
         with open(filename, 'r') as f:
             data = json.load(f)
+
         nfa = NFA.from_json(data)
+
         self.states = nfa.states
         self.alphabet = nfa.alphabet
         self.transition_table = nfa.transition_table
@@ -95,6 +110,7 @@ class NFA:
         reachable_states = set()
         boundary = set()
         reachable_states.add(self.start_state)
+
         boundary.add(self.start_state)
         while boundary:
             s = boundary.pop()
@@ -103,10 +119,12 @@ class NFA:
                     if next_state not in reachable_states:
                         reachable_states.add(next_state)
                         boundary.add(next_state)
+
         return self.states - reachable_states
 
     def remove_unreachable(self):
         unreachable = self.get_unreachable()
+
         self.states -= unreachable
         self.accept_states -= unreachable
         self.transition_table = {
@@ -117,20 +135,24 @@ class NFA:
         new_states = {state + offset for state in self.states}
         new_start_state = self.start_state + offset
         new_accept_states = {state + offset for state in self.accept_states}
+
         new_transition_table = {}
         for (from_state, symbol), to_states in self.transition_table.items():
             new_transition_table[(from_state + offset, symbol)] = {s + offset for s in to_states}
+
         nfa = NFA(new_states, self.alphabet, new_start_state, new_accept_states)
         nfa.transition_table = new_transition_table
+
         return nfa
 
     @staticmethod
     def generate_random(states_count):
         num_symbols = random.randint(2, 3)
         num_final_states = random.randint(2, 3)
-        
+
         alphabet = {chr(ord('a') + random.randint(0, 25)) for _ in range(num_symbols)}
         states = set(range(states_count))
+
         start_state = 0
         final_states = {random.randint(0, states_count-1) for _ in range(num_final_states)}
 
@@ -158,7 +180,7 @@ class NFA:
         nfa = NFA(states, alphabet, start_state, final_states)
         nfa.transition_table = transition_table
         return nfa
-    
+
     @staticmethod
     def concatenation(nfa1, nfa2):
         offset = max(nfa1.states) + 1
@@ -224,7 +246,7 @@ class NFA:
         result = NFA(new_states, new_alphabet, new_start_state, new_accept_states)
         result.transition_table = new_transition_table
         return result
-    
+
     def plot(self, filename="nfa", format="pdf", view=False):
         dot = graphviz.Digraph(name=filename, format=format)
         dot.attr(rankdir="LR")
